@@ -1,65 +1,65 @@
 # quick-notes — LocalCode Plugin
 
-Ein einfaches Beispiel-Plugin für [LocalCode](https://github.com/lsheasel/LocalCode).
+A simple example plugin for [LocalCode](https://github.com/lsheasel/LocalCode).
 
-Der **Agent** kann während einer Aufgabe Notizen speichern. Der **User** liest sie mit `/notes`.
+The **agent** can save notes while working on a task. The **user** reads them with `/notes`.
 
 ---
 
 ## Installation
 
 ```
-/plugin install C:\Users\<dein-name>\Desktop\Coding\LocalCode-Plugin
+/plugin install C:\Users\<your-name>\Desktop\Coding\LocalCode-Plugin
 ```
 
-Oder wenn du es auf GitHub hochgeladen hast:
+Or if you have uploaded it to GitHub:
 
 ```
-/plugin install dein-username/LocalCode-Plugin
+/plugin install your-username/LocalCode-Plugin
 ```
 
-Nach der Installation ohne Neustart sofort verfügbar.
+Available immediately after install — no restart needed.
 
 ---
 
-## Was kann das Plugin?
+## What does this plugin do?
 
-### Für den Agent (Tools)
+### For the agent (Tools)
 
-Der LLM-Agent bekommt zwei neue Werkzeuge, die er selbst aufrufen kann:
+The LLM agent gets two new tools it can call on its own:
 
-| Tool | Wofür |
+| Tool | Purpose |
 |---|---|
-| `save_note` | Speichert einen Text (optional mit Tag wie `"bug"` oder `"todo"`) |
-| `read_notes` | Liest alle gespeicherten Notizen zurück (optional nach Tag gefiltert) |
+| `save_note` | Saves a text note, optionally tagged (e.g. `"bug"`, `"todo"`) |
+| `read_notes` | Reads back all saved notes, optionally filtered by tag |
 
-Beispiel: Du sagst dem Agent *"Analysiere das Projekt und merke dir alle Bugs"*. Während er Dateien liest, ruft er `save_note` auf, um Findings zu speichern.
+Example: you tell the agent *"Analyze the project and note down all bugs"*. As it reads through files, it calls `save_note` to record its findings.
 
-### Für den User (Slash-Command)
+### For the user (Slash command)
 
-| Befehl | Wirkung |
+| Command | Effect |
 |---|---|
-| `/notes` | Zeigt alle gespeicherten Notizen an |
-| `/notes clear` | Löscht alle Notizen |
+| `/notes` | Shows all saved notes |
+| `/notes clear` | Deletes all notes |
 
-Notizen werden gespeichert in: `~/.localcode/quick-notes.json`
+Notes are stored in: `~/.localcode/quick-notes.json`
 
 ---
 
-## Dateistruktur
+## File structure
 
 ```
 LocalCode-Plugin/
-├── localcode.plugin.json   ← Manifest: Name, Version, was das Plugin registriert
-├── index.js                ← Code: register()-Funktion mit Tools und Commands
-└── README.md               ← Diese Datei
+├── localcode.plugin.json   ← Manifest: name, version, what the plugin registers
+├── index.js                ← Code: register() function with tools and commands
+└── README.md               ← This file
 ```
 
 ---
 
-## Wie funktioniert ein LocalCode Plugin?
+## How does a LocalCode plugin work?
 
-### 1. Das Manifest — `localcode.plugin.json`
+### 1. The manifest — `localcode.plugin.json`
 
 ```json
 {
@@ -72,106 +72,106 @@ LocalCode-Plugin/
 }
 ```
 
-Das Manifest ist die Identitätskarte des Plugins. LocalCode liest es beim Laden und prüft:
-- `name` muss kebab-case sein (Kleinbuchstaben, Zahlen, Bindestriche)
-- `version` muss gültiges semver sein (`1.0.0`)
-- `tools` und `commands` listen die Namen auf, die `register()` später registriert
+The manifest is the plugin's identity card. LocalCode reads it on startup and validates:
+- `name` must be kebab-case (lowercase letters, numbers, hyphens)
+- `version` must be valid semver (`1.0.0`)
+- `tools` and `commands` list the names that `register()` will register
 
-### 2. Der Code — `index.js` (CommonJS)
+### 2. The code — `index.js` (CommonJS)
 
 ```js
 module.exports = {
   register(registry) {
-    // Tools und Commands hier registrieren
+    // register tools and commands here
   }
 }
 ```
 
-Die einzige Pflicht: das Modul muss ein Objekt mit einer `register`-Funktion exportieren.
+The only requirement: the module must export an object with a `register` function.
 
-LocalCode ruft `register(registry)` beim Start auf und übergibt ein `registry`-Objekt mit zwei Methoden:
+LocalCode calls `register(registry)` on startup and passes a `registry` object with two methods:
 
 #### `registry.addTool({ name, description, parameters, execute })`
 
-Registriert ein Werkzeug, das der **LLM-Agent** aufrufen kann.
+Registers a tool the **LLM agent** can call.
 
 ```js
 registry.addTool({
   name: 'save_note',
-  description: 'Speichert eine Notiz.',   // ← wird dem LLM im System-Prompt gezeigt
-  parameters: {                            // ← JSON Schema der Argumente
+  description: 'Saves a note.',        // ← shown to the LLM in the system prompt
+  parameters: {                         // ← JSON Schema of the arguments
     type: 'object',
     properties: {
-      text: { type: 'string', description: 'Der Notiztext' }
+      text: { type: 'string', description: 'The note text' }
     },
     required: ['text']
   },
   execute: async ({ text }) => {
-    // Führe die Aktion aus
-    // Muss einen String zurückgeben — das bekommt der LLM als Ergebnis
-    return `Notiz gespeichert: ${text}`
+    // perform the action
+    // must return a string — the LLM receives this as the tool result
+    return `Note saved: ${text}`
   }
 })
 ```
 
-**Was passiert im Hintergrund:** Der `description`-Text wird automatisch in den System-Prompt eingefügt, damit der LLM weiß, wann er das Tool nutzen soll. Das `parameters`-Schema zeigt dem LLM, welche Argumente er übergeben muss.
+**What happens under the hood:** the `description` is automatically injected into the system prompt so the LLM knows when to use the tool. The `parameters` schema tells the LLM which arguments to pass.
 
 #### `registry.addCommand({ cmd, description, handler })`
 
-Registriert einen **Slash-Command**, den der User eintippen kann.
+Registers a **slash command** the user can type.
 
 ```js
 registry.addCommand({
   cmd: '/notes',
-  description: 'Zeigt gespeicherte Notizen',
+  description: 'Show saved notes',
   handler: async (args, ctx) => {
-    // args = alles nach dem Command-Namen (z.B. "clear" wenn User "/notes clear" tippt)
-    // ctx.cwd = aktuelles Arbeitsverzeichnis
-    return { type: 'done', content: 'Ergebnis hier' }
+    // args = everything after the command name (e.g. "clear" when user types "/notes clear")
+    // ctx.cwd = current working directory
+    return { type: 'done', content: 'Result goes here' }
   }
 })
 ```
 
-Der Handler gibt ein Objekt zurück:
+The handler returns an object:
 
-| `type` | Darstellung im Terminal |
+| `type` | Display in terminal |
 |---|---|
-| `done` | Grüne Erfolgs-Nachricht |
-| `text` | Einfacher Text |
-| `error` | Rote Fehlermeldung |
-| `command` | Rich-Output mit Titel (`title`-Feld) |
+| `done` | Green success message |
+| `text` | Plain text output |
+| `error` | Red error message |
+| `command` | Rich output with a title (add a `title` field) |
 
 ---
 
-## Eigenes Plugin bauen
+## Building your own plugin
 
-1. Neuen Ordner anlegen: `mein-plugin/`
-2. `localcode.plugin.json` erstellen (Name, Version, Tools/Commands auflisten)
-3. `index.js` schreiben mit `module.exports = { register(registry) { ... } }`
-4. Mit `/plugin install ./mein-plugin` installieren
-5. Mit `/plugin reload` nach Änderungen neu laden — kein Neustart nötig
+1. Create a new folder: `my-plugin/`
+2. Write `localcode.plugin.json` (name, version, list your tools/commands)
+3. Write `index.js` with `module.exports = { register(registry) { ... } }`
+4. Install with `/plugin install ./my-plugin`
+5. After changes, reload with `/plugin reload` — no restart needed
 
-### Tipps
+### Tips
 
-- `execute()` muss immer einen **String** zurückgeben — der geht als Ergebnis zurück an den LLM
-- Fehler in `execute()` crashen den Agent **nicht** — LocalCode fängt sie ab und gibt eine Fehlermeldung an den LLM
-- Du kannst sowohl Tools als auch Commands registrieren, oder nur eines von beiden (der Manifest-Validator erwartet aber mindestens einen Eintrag in `tools`)
-- Plugins laufen im selben Node.js-Prozess wie LocalCode — du hast vollen Zugriff auf `fs`, `path`, `os`, npm-Module etc.
-- CommonJS (`require`) ist Pflicht — kein ESM in `index.js`
+- `execute()` must always return a **string** — it goes back to the LLM as the tool result
+- Errors thrown inside `execute()` do **not** crash the agent — LocalCode catches them and sends an error string to the LLM instead
+- You can register both tools and commands, or just one of them (the manifest validator requires at least one entry in `tools`)
+- Plugins run in the same Node.js process as LocalCode — you have full access to `fs`, `path`, `os`, and any npm modules
+- CommonJS (`require`) is required — no ESM in `index.js`
 
 ---
 
-## Notizen-Datei
+## Notes file format
 
 ```json
 [
   {
     "id": 1,
-    "text": "Auth-Middleware hat kein Rate-Limiting",
+    "text": "Auth middleware has no rate limiting",
     "tag": "bug",
     "timestamp": "2026-05-12T14:23:11.000Z"
   }
 ]
 ```
 
-Gespeichert in `~/.localcode/quick-notes.json`. Bleibt zwischen Sessions erhalten — solange du nicht `/notes clear` ausführst.
+Stored at `~/.localcode/quick-notes.json`. Persists between sessions until you run `/notes clear`.
