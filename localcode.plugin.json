@@ -1,0 +1,8 @@
+{
+  "name": "quick-notes",
+  "version": "1.0.0",
+  "description": "Lets the agent save notes during a task and the user read them with /notes",
+  "author": "Shease",
+  "tools": ["save_note", "read_notes"],
+  "commands": ["/notes"]
+}
