@@ -7,15 +7,8 @@ The **agent** can save notes while working on a task. The **user** reads them wi
 ---
 
 ## Installation
-
 ```
-/plugin install C:\Users\<your-name>\Desktop\Coding\LocalCode-Plugin
-```
-
-Or if you have uploaded it to GitHub:
-
-```
-/plugin install your-username/LocalCode-Plugin
+/plugin install lsheasel/LocalCode-Plugin
 ```
 
 Available immediately after install — no restart needed.
